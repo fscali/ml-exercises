@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-15 -*-
 
+from __future__ import division;
 import numpy as np;
 import matplotlib.pyplot as plt;
 from matplotlib import cm;
@@ -10,7 +11,6 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 def computeCost(X,Y,theta):
     m=len(Y);
     h=np.dot(X,theta);
-    #J=((1.0)/(2*m))* ((h[:,0]-Y)**2).sum(); #need to extract the first column  from h (even if it has only one column)
     J=((1.0)/(2*m))* ((h-Y)**2).sum(); 
 
     return J;
@@ -26,6 +26,16 @@ def gradientDescent(X,Y,theta,alpha,num_iters):
         J_history[i] = computeCost(X,Y,theta);
     return (theta,J_history);
 
+def featureNormalize(X):
+    X_norm=X;
+    mu=np.mean(X,axis=0);
+    sigma=np.std(X,axis=0,ddof=1);
+    for i in range(np.size(X,0)):
+        X_norm[i,:]=(X[i,:]-mu)/sigma; #division is element wise
+    return (X_norm,mu,sigma);
+
+def normalEqn(X,Y):
+    return np.dot(np.linalg.pinv(np.dot(np.transpose(X),X)),np.dot(np.transpose(X),Y));
 
 A=np.eye(5); #identity matrix
 
@@ -100,3 +110,48 @@ plt.draw();
 plt.plot(theta[0,:], theta[1,:], 'rx', markersize=10, linewidth=2);
 plt.show();
 raw_input("Press ENTER to exit");
+
+
+
+data = np.genfromtxt('ex1data2.txt', delimiter=',');
+X=data[:,0:2];
+Y=data[:,2];
+m=len(Y); #number of training examples
+X=data[:,0:2].reshape(m,2);
+Y=data[:,2].reshape(m,1);
+print(X.shape);
+print(Y.shape);
+print("First 10 examples from the dataset:");
+for i in range(10):
+    print("x=[{x0:f} {x1:f}], y={y:f}".format(x0=X[i,0],x1=X[i,1],y=Y[i,0]));
+
+[X, mu, sigma]=featureNormalize(X);
+
+
+X=np.hstack([ np.ones((m,1)), data[:,0:2] ]);
+
+print("Running gradient descent..");
+alpha=0.5;
+num_iters=400;
+theta=np.zeros((3,1));
+[theta,J_history]=gradientDescent(X,Y,theta,alpha,num_iters);
+plt.figure();
+plt.plot(range(len(J_history)),J_history,'-b',linewidth=2);
+plt.xlabel("Number of iterations");
+plt.ylabel("Cost J");
+plt.show();
+
+print("Theta computed by gradient descent: [{theta_0:f} {theta_1:f} {theta_2:f}]".format(theta_0=theta[0,0],theta_1=theta[1,0], theta_2=theta[2,0]));
+price = 0; 
+norm_input = np.array([1.0,1650.0,3.0]).reshape(3,1); #note that I set the float type explicitly otherwise next assignments won't work correctly
+norm_input[1,0] = (norm_input[1,0]-mu[0])/(sigma[0]) ;
+norm_input[2,0] = (norm_input[2,0]-mu[1])/(sigma[1]);
+price =  np.dot(np.transpose(theta), norm_input);
+print("Predicted price of a 1650 sq-ft, 3 br house (using gradiend descent):  {my_price:f}".format(my_price=price[0,0]));
+
+
+theta=normalEqn(X,Y);
+
+print("Theta computed by normal equation: [{theta_0:f} {theta_1:f} {theta_2:f}]".format(theta_0=theta[0,0],theta_1=theta[1,0], theta_2=theta[2,0]));
+
+
